@@ -1,7 +1,7 @@
 {
   "name": "supabase-url-shortener",
   "version": "1.0.0",
-  "description": "A simple URL shortener using Supabase",
+  "description": "A URL shortener with Supabase and Vercel",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
