@@ -1,33 +1,26 @@
-const express = require('express');
-const { nanoid } = require('nanoid');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
+import express from 'express';
+import { nanoid } from 'nanoid';
+import cors from 'cors';
+import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase using Vercel environment variables
+const app = express();
+
+// Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const app = express();
-app.use(cors({ origin: 'https://www.pilotfront.com' })); // Allow requests from your Webflow domain
-app.use(express.json()); // Parse JSON body
+// Middleware
+app.use(cors({ origin: 'https://www.pilotfront.com' }));
+app.use(express.json());
 
-// Middleware for password protection
-function passwordProtect(req, res, next) {
-  const { password } = req.query;
-  if (password !== 'balu8770380772') {
-    return res.status(403).send('<h1>Access Denied</h1><p>Invalid password!</p>');
-  }
-  next();
-}
-
-// Home Route
+// Home route
 app.get('/', (req, res) => {
   res.send('<h1>URL Shortener</h1><p>Use POST /shorten to create a short URL.</p>');
 });
 
-// Create Short URL
+// Shorten a URL
 app.post('/shorten', async (req, res) => {
   const { originalUrl, username, password } = req.body;
 
@@ -36,6 +29,7 @@ app.post('/shorten', async (req, res) => {
   }
 
   const shortId = nanoid(6);
+
   try {
     const { error } = await supabase.from('urls').insert([
       {
@@ -46,15 +40,20 @@ app.post('/shorten', async (req, res) => {
         clicks: 0,
       },
     ]);
-    if (error) throw error;
+
+    if (error) {
+      console.error('Supabase Insert Error:', error);
+      return res.status(500).json({ error: 'Error creating short URL.' });
+    }
 
     res.json({ shortUrl: `https://${req.headers.host}/${shortId}` });
-  } catch (error) {
-    res.status(500).json({ error: 'Error creating short URL.' });
+  } catch (err) {
+    console.error('Server Error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
-// Redirect to Original URL
+// Redirect to the original URL
 app.get('/:shortId', async (req, res) => {
   const { shortId } = req.params;
 
@@ -69,29 +68,16 @@ app.get('/:shortId', async (req, res) => {
       return res.redirect('https://www.pilotfront.com');
     }
 
-    const originalUrl = data.original_url.startsWith('http')
-      ? data.original_url
-      : `https://${data.original_url}`;
-    await supabase.from('urls').update({ clicks: data.clicks + 1 }).eq('short_id', shortId);
-    res.redirect(originalUrl);
-  } catch {
+    // Increment click count
+    await supabase
+      .from('urls')
+      .update({ clicks: data.clicks + 1 })
+      .eq('short_id', shortId);
+
+    res.redirect(data.original_url.startsWith('http') ? data.original_url : `https://${data.original_url}`);
+  } catch (err) {
+    console.error('Redirect Error:', err);
     res.redirect('https://www.pilotfront.com');
-  }
-});
-
-// Delete Short URL
-app.delete('/delete/:shortId', passwordProtect, async (req, res) => {
-  const { shortId } = req.params;
-
-  try {
-    const { error } = await supabase.from('urls').delete().eq('short_id', shortId);
-    if (error) {
-      return res.status(404).json({ error: 'Short URL not found' });
-    }
-
-    res.json({ message: 'URL deleted successfully' });
-  } catch {
-    res.status(500).json({ error: 'Error deleting URL.' });
   }
 });
 
@@ -106,17 +92,47 @@ app.post('/list', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('urls')
-      .select('short_id, original_url, clicks')
+      .select('*')
       .eq('username', username)
       .eq('password', password);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Fetch Error:', error);
+      return res.status(500).json({ error: 'Error fetching URLs.' });
+    }
 
-    res.json(data || []);
-  } catch {
-    res.status(500).json({ error: 'Error fetching URLs.' });
+    res.json(data.map(({ short_id, original_url, clicks }) => ({ shortId: short_id, originalUrl: original_url, clicks })));
+  } catch (err) {
+    console.error('Server Error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
-// Start server
-module.exports = app;
+// Delete a URL
+app.delete('/delete/:shortId', async (req, res) => {
+  const { shortId } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from('urls')
+      .delete()
+      .eq('short_id', shortId);
+
+    if (error) {
+      console.error('Delete Error:', error);
+      return res.status(500).json({ error: 'Error deleting URL.' });
+    }
+
+    res.json({ message: 'URL deleted successfully.' });
+  } catch (err) {
+    console.error('Server Error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Start the server
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+
+export default app;
