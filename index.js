@@ -1,4 +1,4 @@
-import express from 'express';
+import express from 'express'; 
 import { nanoid } from 'nanoid';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
@@ -20,51 +20,44 @@ app.get('/', (req, res) => {
   res.send('<h1>URL Shortener</h1><p>Use POST /shorten to create a short URL.</p>');
 });
 
-// Shorten a URL with custom or random shortId
+// Shorten a URL
 app.post('/shorten', async (req, res) => {
-  const { originalUrl, username, password, customShortId } = req.body;
+  const { originalUrl, username, password, shortId } = req.body;  // Accept custom shortId
 
   if (!originalUrl || !username || !password) {
     return res.status(400).json({ error: 'URL, username, and password are required!' });
   }
 
-  // Check if custom shortId is provided, otherwise generate a random one
-  const shortId = customShortId && customShortId.trim() !== '' ? customShortId : nanoid(6);
+  // If a custom shortId is provided, check if it is available
+  let customShortId = shortId || nanoid(6);  // Use custom shortId or generate a random one
 
   try {
-    // Check if custom shortId already exists
-    const { data, error: checkError } = await supabase
+    // Check if the custom shortId already exists in the database
+    const { data, error } = await supabase
       .from('urls')
-      .select('*')
-      .eq('short_id', shortId)
+      .select('short_id')
+      .eq('short_id', customShortId)
       .single();
 
-    if (checkError && checkError.code !== 'PGRST120') {
-      console.error('Supabase Check Error:', checkError);
-      return res.status(500).json({ error: 'Error checking short URL availability.' });
-    }
-
     if (data) {
-      return res.status(400).json({ error: 'Custom short ID already exists!' });
+      return res.status(400).json({ error: 'The custom short ID is already taken. Please choose another one.' });
     }
 
-    // Insert the new short URL into Supabase
-    const { error } = await supabase.from('urls').insert([
-      {
-        short_id: shortId,
-        original_url: originalUrl,
-        username,
-        password,
-        clicks: 0,
-      },
-    ]);
+    // Insert the URL data with the chosen or generated shortId
+    const { error: insertError } = await supabase.from('urls').insert([{
+      short_id: customShortId,
+      original_url: originalUrl,
+      username,
+      password,
+      clicks: 0,
+    }]);
 
-    if (error) {
-      console.error('Supabase Insert Error:', error);
+    if (insertError) {
+      console.error('Supabase Insert Error:', insertError);
       return res.status(500).json({ error: 'Error creating short URL.' });
     }
 
-    res.json({ shortUrl: `https://${req.headers.host}/${shortId}` });
+    res.json({ shortUrl: `https://${req.headers.host}/${customShortId}` });
   } catch (err) {
     console.error('Server Error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -83,7 +76,7 @@ app.get('/:shortId', async (req, res) => {
       .single();
 
     if (error || !data) {
-      return res.redirect('https://www.pilotfront.com'); // Redirect to pilotfront.com if URL not found
+      return res.redirect('https://www.pilotfront.com');
     }
 
     // Increment click count
