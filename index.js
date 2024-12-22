@@ -3,10 +3,12 @@ const { nanoid } = require('nanoid');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Supabase
-const supabase = createClient('your-supabase-url', 'your-supabase-key');
+// Initialize Supabase using Vercel environment variables
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-// Express app setup
 const app = express();
 app.use(cors({ origin: 'https://www.pilotfront.com' })); // Allow requests from your Webflow domain
 app.use(express.json()); // Parse JSON body
@@ -35,7 +37,7 @@ app.post('/shorten', async (req, res) => {
 
   const shortId = nanoid(6);
   try {
-    await supabase.from('urls').insert([
+    const { error } = await supabase.from('urls').insert([
       {
         short_id: shortId,
         original_url: originalUrl,
@@ -44,6 +46,8 @@ app.post('/shorten', async (req, res) => {
         clicks: 0,
       },
     ]);
+    if (error) throw error;
+
     res.json({ shortUrl: `https://${req.headers.host}/${shortId}` });
   } catch (error) {
     res.status(500).json({ error: 'Error creating short URL.' });
@@ -55,13 +59,13 @@ app.get('/:shortId', async (req, res) => {
   const { shortId } = req.params;
 
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('urls')
       .select('*')
       .eq('short_id', shortId)
       .single();
 
-    if (!data) {
+    if (error || !data) {
       return res.redirect('https://www.pilotfront.com');
     }
 
@@ -80,10 +84,11 @@ app.delete('/delete/:shortId', passwordProtect, async (req, res) => {
   const { shortId } = req.params;
 
   try {
-    const { data, error } = await supabase.from('urls').delete().eq('short_id', shortId);
-    if (error || !data.length) {
+    const { error } = await supabase.from('urls').delete().eq('short_id', shortId);
+    if (error) {
       return res.status(404).json({ error: 'Short URL not found' });
     }
+
     res.json({ message: 'URL deleted successfully' });
   } catch {
     res.status(500).json({ error: 'Error deleting URL.' });
@@ -99,11 +104,13 @@ app.post('/list', async (req, res) => {
   }
 
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('urls')
       .select('short_id, original_url, clicks')
       .eq('username', username)
       .eq('password', password);
+
+    if (error) throw error;
 
     res.json(data || []);
   } catch {
