@@ -1,15 +1,15 @@
 {
-  "name": "supabase-url-shortener",
+  "name": "url-shortener",
   "version": "1.0.0",
-  "description": "A URL shortener with Supabase and Vercel",
-  "main": "index.js",
+  "type": "module",
+  "main": "index.mjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.0.0",
-    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "nanoid": "^4.0.0"
+    "nanoid": "^4.0.0",
+    "cors": "^2.8.5",
+    "@supabase/supabase-js": "^2.0.0"
   }
 }
