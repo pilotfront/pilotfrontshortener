@@ -40,7 +40,7 @@ app.post('/shorten', async (req, res) => {
       .single();
 
     if (data) {
-      return res.status(400).json({ error: 'The custom short ID is already taken. Please choose another one.' });
+      return res.status(400).json({ error: 'Oops! That ID is taken. Try a fresh one!' });
     }
 
     // Insert the URL data with the chosen or generated shortId
