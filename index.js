@@ -1,7 +1,6 @@
 import express from 'express';
 import { nanoid } from 'nanoid';
 import cors from 'cors';
-import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 
 const app = express();
@@ -13,19 +12,17 @@ const supabase = createClient(
 );
 
 // Middleware
-app.use(cors({ origin: 'https://www.pilotfront.com' }));
+app.use(cors({ origin: 'https://www.pilotfront.com' })); // Allow requests from your domain
 app.use(express.json());
 
-// Serve static files (HTML, CSS, JS)
-const __dirname = path.resolve(); // Ensure correct directory path
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Serve index.html as homepage
+// Home route
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(__dirname + '/public/index.html');
 });
 
-// Shorten a URL
+// ================================
+// ✅ Shorten a URL
+// ================================
 app.post('/shorten', async (req, res) => {
   const { originalUrl, username, password, shortId } = req.body;
 
@@ -33,9 +30,11 @@ app.post('/shorten', async (req, res) => {
     return res.status(400).json({ error: 'URL, username, and password are required!' });
   }
 
+  // Generate a custom or random shortId
   let customShortId = shortId || nanoid(6);
 
   try {
+    // Check if the custom shortId already exists
     const { data, error } = await supabase
       .from('urls')
       .select('short_id')
@@ -43,9 +42,10 @@ app.post('/shorten', async (req, res) => {
       .single();
 
     if (data) {
-      return res.status(400).json({ error: 'Oops! That ID is taken. Try a fresh one!' });
+      return res.status(400).json({ error: 'Oops! That ID is taken. Try a different one!' });
     }
 
+    // Insert the new URL with the generated or custom shortId
     const { error: insertError } = await supabase.from('urls').insert([
       {
         short_id: customShortId,
@@ -53,7 +53,7 @@ app.post('/shorten', async (req, res) => {
         username,
         password,
         clicks: 0,
-      }
+      },
     ]);
 
     if (insertError) {
@@ -68,7 +68,9 @@ app.post('/shorten', async (req, res) => {
   }
 });
 
-// Redirect to the original URL
+// ================================
+// ✅ Redirect to Original URL
+// ================================
 app.get('/:shortId', async (req, res) => {
   const { shortId } = req.params;
 
@@ -83,11 +85,13 @@ app.get('/:shortId', async (req, res) => {
       return res.redirect('/');
     }
 
+    // Increment the click count
     await supabase
       .from('urls')
       .update({ clicks: data.clicks + 1 })
       .eq('short_id', shortId);
 
+    // Redirect to the original URL
     res.redirect(data.original_url.startsWith('http') ? data.original_url : `https://${data.original_url}`);
   } catch (err) {
     console.error('Redirect Error:', err);
@@ -95,9 +99,67 @@ app.get('/:shortId', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
+// ================================
+// ✅ Fetch URLs by Username & Password
+// ================================
+app.post('/list', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required!' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('urls')
+      .select('*')
+      .eq('username', username)
+      .eq('password', password);
+
+    if (error || !data.length) {
+      return res.status(404).json({ error: 'No URLs found for this user.' });
+    }
+
+    res.json(
+      data.map(({ short_id, original_url, clicks }) => ({
+        shortId: short_id,
+        originalUrl: original_url,
+        clicks,
+      }))
+    );
+  } catch (err) {
+    console.error('Fetch Error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ================================
+// ✅ Delete a URL
+// ================================
+app.delete('/delete/:shortId', async (req, res) => {
+  const { shortId } = req.params;
+
+  try {
+    const { error } = await supabase.from('urls').delete().eq('short_id', shortId);
+
+    if (error) {
+      console.error('Delete Error:', error);
+      return res.status(500).json({ error: 'Error deleting URL.' });
+    }
+
+    res.json({ message: '✅ URL deleted successfully.' });
+  } catch (err) {
+    console.error('Server Error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ================================
+// ✅ Start the Server
+// ================================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
 export default app;
