@@ -6,17 +6,25 @@
       "use": "@vercel/node"
     },
     {
-      "src": "index.html",
+      "src": "public/index.html",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/",
-      "dest": "/index.html"
+      "dest": "/public/index.html"
     },
     {
-      "src": "/api/(.*)",
+      "src": "/shorten",
+      "dest": "/index.js"
+    },
+    {
+      "src": "/list",
+      "dest": "/index.js"
+    },
+    {
+      "src": "/delete/(.*)",
       "dest": "/index.js"
     },
     {
