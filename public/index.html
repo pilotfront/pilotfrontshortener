@@ -5,57 +5,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pilotfront URL Shortener</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #ededed;
+    /* Global styles */
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #0f0f0f;
+      color: #f5f5f5;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
     }
     .container {
-      background-color: #fff;
-      padding: 20px;
+      background-color: #1e1e1e;
+      padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
       text-align: center;
-      width: 400px;
+      width: 420px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     h1 {
-      color: #333;
-      margin-bottom: 10px;
+      color: #00e5ff;
+      font-size: 24px;
+      margin-bottom: 12px;
     }
     p {
-      color: #666;
+      color: #b0bec5;
+      margin-bottom: 24px;
     }
     form {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-top: 20px;
     }
     input {
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      padding: 12px;
+      font-size: 14px;
+      background-color: #2a2a2a;
+      border: 1px solid #424242;
+      color: #f5f5f5;
+      border-radius: 8px;
+      outline: none;
+    }
+    input::placeholder {
+      color: #757575;
     }
     button {
-      padding: 10px;
+      padding: 12px;
       font-size: 16px;
-      background-color: #4caf50;
-      color: white;
+      background: linear-gradient(135deg, #00e5ff, #00b8d4);
+      color: #0f0f0f;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
     button:hover {
-      background-color: #45a049;
+      background: linear-gradient(135deg, #00b8d4, #0097a7);
     }
     #result, #domainList {
-      margin-top: 20px;
+      margin-top: 24px;
       text-align: left;
     }
     #domainList ul {
@@ -63,17 +78,46 @@
       padding: 0;
     }
     #domainList li {
-      background-color: #f4f4f4;
-      padding: 8px;
-      margin-top: 5px;
-      border-radius: 6px;
-      word-break: break-all;
+      background-color: #2a2a2a;
+      padding: 12px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #424242;
+      word-break: break-word;
+    }
+    hr {
+      border: none;
+      height: 1px;
+      background-color: #424242;
+      margin: 24px 0;
     }
     .btn-secondary {
-      background-color: #2196f3;
+      background: linear-gradient(135deg, #ff4081, #ff1744);
+      color: #fff;
     }
     .btn-secondary:hover {
-      background-color: #1e87dc;
+      background: linear-gradient(135deg, #ff1744, #d50000);
+    }
+    a {
+      color: #00e5ff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #424242;
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #616161;
     }
   </style>
 </head>
