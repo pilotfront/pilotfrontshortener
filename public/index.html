@@ -54,10 +54,26 @@
     button:hover {
       background-color: #45a049;
     }
-    #result {
+    #result, #domainList {
       margin-top: 20px;
-      color: #4caf50;
-      font-weight: bold;
+      text-align: left;
+    }
+    #domainList ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    #domainList li {
+      background-color: #f4f4f4;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 6px;
+      word-break: break-all;
+    }
+    .btn-secondary {
+      background-color: #2196f3;
+    }
+    .btn-secondary:hover {
+      background-color: #1e87dc;
     }
   </style>
 </head>
@@ -65,6 +81,8 @@
   <div class="container">
     <h1>🚀 Pilotfront URL Shortener</h1>
     <p>Enter a URL to generate a short link!</p>
+
+    <!-- URL Shortener Form -->
     <form id="urlForm">
       <input type="url" id="originalUrl" placeholder="Enter URL" required />
       <input type="text" id="customShortId" placeholder="Custom Short ID (optional)" />
@@ -72,10 +90,24 @@
       <input type="password" id="password" placeholder="Password" required />
       <button type="submit">Shorten URL</button>
     </form>
+
     <div id="result"></div>
+
+    <hr />
+
+    <!-- Fetch Domain List Section -->
+    <h2>🔎 Fetch Domain List</h2>
+    <form id="domainForm">
+      <input type="text" id="fetchUsername" placeholder="Enter Username" required />
+      <input type="password" id="fetchPassword" placeholder="Enter Password" required />
+      <button type="button" class="btn-secondary" onclick="fetchDomainList()">Fetch Domains</button>
+    </form>
+
+    <div id="domainList"></div>
   </div>
 
   <script>
+    // URL Shortener Form Submit Handler
     document.getElementById('urlForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -99,6 +131,31 @@
         document.getElementById('result').innerHTML = `❌ Error: ${result.error}`;
       }
     });
+
+    // Fetch Domain List Handler
+    async function fetchDomainList() {
+      const username = document.getElementById('fetchUsername').value;
+      const password = document.getElementById('fetchPassword').value;
+
+      const response = await fetch('/list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const result = await response.json();
+      const domainListDiv = document.getElementById('domainList');
+
+      if (Array.isArray(result) && result.length > 0) {
+        domainListDiv.innerHTML = `<h3>✅ Domain List:</h3><ul>${result
+          .map((item) => `<li>🔗 <b>Short ID:</b> ${item.shortId} <br>🌐 <b>URL:</b> <a href="${item.originalUrl}" target="_blank">${item.originalUrl}</a> <br>📊 <b>Clicks:</b> ${item.clicks}</li>`)
+          .join('')}</ul>`;
+      } else {
+        domainListDiv.innerHTML = `<p>❌ No domains found or error fetching data.</p>`;
+      }
+    }
   </script>
 </body>
 </html>
